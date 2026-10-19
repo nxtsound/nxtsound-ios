@@ -1,0 +1,27 @@
+/* NxtSound app texts. Keys are the English source strings. */
+"Enter your server's address." = "Gib die Adresse deines Servers ein.";
+"music.example.com" = "musik.example.ch";
+"Connect" = "Verbinden";
+"Save address" = "Adresse speichern";
+"Reload page" = "Seite neu laden";
+"Log out and remove server" = "Abmelden und Server entfernen";
+"Deletes the session on this device and asks for the server address again at the next start." = "Löscht die Sitzung auf diesem Gerät und fragt beim nächsten Start wieder nach der Server-Adresse.";
+"Server" = "Server";
+"Info" = "Info";
+"App settings" = "App-Einstellungen";
+"Done" = "Fertig";
+"Really log out?" = "Wirklich abmelden?";
+"Log out" = "Abmelden";
+"Settings" = "Einstellungen";
+"Server unreachable" = "Server nicht erreichbar";
+"Try again" = "Erneut versuchen";
+"That is not a valid address." = "Das ist keine gültige Adresse.";
+"Server unreachable: %@" = "Server nicht erreichbar: %@";
+"This is not a %@ server." = "Das ist kein %@-Server.";
+"The address redirects to %@. Please enter the final address." = "Die Adresse leitet auf %@ weiter. Bitte die endgültige Adresse eingeben.";
+"The server is newer than this app. Please update the app." = "Der Server ist neuer als diese App. Bitte die App aktualisieren.";
+"The server is too old for this app. Please update the server." = "Der Server ist zu alt für diese App. Bitte den Server aktualisieren.";
+"Checking connection …" = "Prüfe Verbindung …";
+"Connected to “%@”" = "Verbunden mit „%@“";
+"Connected to “%@” · version %@" = "Verbunden mit „%@“ · Version %@";
+"The server does not respond." = "Der Server antwortet nicht.";

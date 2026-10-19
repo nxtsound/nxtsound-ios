@@ -1,0 +1,27 @@
+/* NxtSound app texts. Keys are the English source strings. */
+"Enter your server's address." = "Enter your server's address.";
+"music.example.com" = "music.example.com";
+"Connect" = "Connect";
+"Save address" = "Save address";
+"Reload page" = "Reload page";
+"Log out and remove server" = "Log out and remove server";
+"Deletes the session on this device and asks for the server address again at the next start." = "Deletes the session on this device and asks for the server address again at the next start.";
+"Server" = "Server";
+"Info" = "Info";
+"App settings" = "App settings";
+"Done" = "Done";
+"Really log out?" = "Really log out?";
+"Log out" = "Log out";
+"Settings" = "Settings";
+"Server unreachable" = "Server unreachable";
+"Try again" = "Try again";
+"That is not a valid address." = "That is not a valid address.";
+"Server unreachable: %@" = "Server unreachable: %@";
+"This is not a %@ server." = "This is not a %@ server.";
+"The address redirects to %@. Please enter the final address." = "The address redirects to %@. Please enter the final address.";
+"The server is newer than this app. Please update the app." = "The server is newer than this app. Please update the app.";
+"The server is too old for this app. Please update the server." = "The server is too old for this app. Please update the server.";
+"Checking connection …" = "Checking connection …";
+"Connected to “%@”" = "Connected to “%@”";
+"Connected to “%@” · version %@" = "Connected to “%@” · version %@";
+"The server does not respond." = "The server does not respond.";

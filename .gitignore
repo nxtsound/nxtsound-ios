@@ -1,0 +1,7 @@
+.DS_Store
+ios/*.xcodeproj
+xcuserdata/
+build/
+DerivedData/
+ios/Local.xcconfig
+CLAUDE.local.md
