@@ -25,3 +25,5 @@
 "Connected to “%@”" = "Verbunden mit „%@“";
 "Connected to “%@” · version %@" = "Verbunden mit „%@“ · Version %@";
 "The server does not respond." = "Der Server antwortet nicht.";
+"OK" = "OK";
+"Cancel" = "Abbrechen";

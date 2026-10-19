@@ -25,3 +25,5 @@
 "Connected to “%@”" = "Connected to “%@”";
 "Connected to “%@” · version %@" = "Connected to “%@” · version %@";
 "The server does not respond." = "The server does not respond.";
+"OK" = "OK";
+"Cancel" = "Cancel";
