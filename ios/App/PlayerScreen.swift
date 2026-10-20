@@ -28,7 +28,7 @@ struct PlayerScreen: View {
                 }
             case .loaded: EmptyView()
             }
-            if offlineVisible { OfflineView(offline: offline, model: model, online: net.isOnline, onRetry: { model.reload() }, onClose: failed ? nil : { showOffline = false }) }
+            if offlineVisible { OfflineView(offline: offline, model: model, online: net.isOnline, onRetry: { model.reload() }, onClose: offlineForced ? nil : { showOffline = false }) }
             if showSplash { SplashView(model: model) }
         }
         .overlay(alignment: .top) {
@@ -62,10 +62,13 @@ struct PlayerScreen: View {
         return false
     }
 
-    /// The offline list takes over when the page cannot be shown and there is no connection, or when the user opened it.
+    /// The offline list takes over when there is no connection and the page cannot show anything but its own "not reachable" state, or when the user opened it.
     private var offlineVisible: Bool {
-        !offline.tracks.isEmpty && (showOffline || (failed && !net.isOnline))
+        !offline.tracks.isEmpty && (showOffline || offlineForced)
     }
+
+    /// No connection and nothing but the page's own "not reachable" state to show: the list cannot be closed then (retry is offered instead).
+    private var offlineForced: Bool { !net.isOnline && (failed || model.fromCache) }
 
     private func syncOffline() {
         Task { await offline.syncIfDue(cookies: model.cookieStore, network: net) }
