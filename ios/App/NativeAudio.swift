@@ -13,14 +13,16 @@ struct NativeTrack {
     let album: String
     let thumb: URL?
 
-    init?(_ dict: [String: Any]?) {
-        guard let dict, let id = dict["id"] as? String, let text = dict["url"] as? String, let url = URL(string: text) else { return nil }
+    /// A track the page describes. Only stream addresses of the linked server count, and a cover only from there or from https.
+    init?(_ dict: [String: Any]?, origin: TrustedOrigin?) {
+        guard let dict, let id = dict["id"] as? String, let text = dict["url"] as? String, let url = URL(string: text),
+              origin?.isStream(url) == true else { return nil }
         self.id = id
         self.url = url
         title = dict["title"] as? String ?? ""
         artist = dict["artist"] as? String ?? ""
         album = dict["album"] as? String ?? ""
-        thumb = (dict["thumb"] as? String).flatMap(URL.init(string:))
+        thumb = (dict["thumb"] as? String).flatMap(URL.init(string:)).flatMap { origin?.isPicture($0) == true ? $0 : nil }
     }
 
     init(id: String, url: URL) {
@@ -37,6 +39,9 @@ final class NativeAudio: NSObject, WKScriptMessageHandler {
     var onTrack: ((NativeTrack) -> Void)?
     /// Pass a command on to the page when the player cannot handle it itself.
     var onPageCommand: ((String) -> Void)?
+
+    /// The linked server: the page may only make the player fetch its stream addresses (set by the web model).
+    var origin: TrustedOrigin?
 
     private weak var webView: WKWebView?
     private let player = AVQueuePlayer()
@@ -161,9 +166,9 @@ final class NativeAudio: NSObject, WKScriptMessageHandler {
     // MARK: Seite -> Player
 
     func userContentController(_ controller: WKUserContentController, didReceive message: WKScriptMessage) {
-        guard let body = message.body as? [String: Any], let cmd = body["cmd"] as? String else { return }
+        guard origin?.accepts(message) == true, let body = message.body as? [String: Any], let cmd = body["cmd"] as? String else { return }
         switch cmd {
-        case "load": if let text = body["url"] as? String, let url = URL(string: text) { load(url) }
+        case "load": if let text = body["url"] as? String, let url = URL(string: text), origin?.isStream(url) == true { load(url) }
         case "play": play()
         case "pause": pause()
         case "seek": seek(to: body["time"] as? Double ?? 0)
@@ -267,12 +272,12 @@ final class NativeAudio: NSObject, WKScriptMessageHandler {
     // MARK: Warteschlange
 
     private func updateQueue(_ body: [String: Any]) {
-        guard let cur = NativeTrack(body["cur"] as? [String: Any]) else { return }
+        guard let cur = NativeTrack(body["cur"] as? [String: Any], origin: origin) else { return }
         // Outdated state of the page (the player is already further): ignore it, the page catches up.
         guard cur.id == current?.id else { return }
         current = cur
-        previous = NativeTrack(body["prev"] as? [String: Any])
-        upcoming = (body["next"] as? [[String: Any]] ?? []).compactMap { NativeTrack($0) }
+        previous = NativeTrack(body["prev"] as? [String: Any], origin: origin)
+        upcoming = (body["next"] as? [[String: Any]] ?? []).compactMap { NativeTrack($0, origin: origin) }
         repeatMode = body["repeat"] as? String ?? "off"
         withCookies { [weak self] in self?.syncQueueItems() }
     }

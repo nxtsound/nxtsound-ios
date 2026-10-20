@@ -12,6 +12,8 @@ final class NowPlayingBridge: NSObject, WKScriptMessageHandler {
     private var commandsReady = false
     /// Native player: play/pause/position go straight there, previous/next to the page.
     var audio: NativeAudio?
+    /// The linked server: only its page may set the lock-screen info; a cover comes from there or from https.
+    var origin: TrustedOrigin?
 
     /// Runs in the page before all its own scripts and forwards mediaSession calls.
     static let script = """
@@ -87,7 +89,7 @@ final class NowPlayingBridge: NSObject, WKScriptMessageHandler {
     // MARK: Seite -> Lockscreen
 
     func userContentController(_ controller: WKUserContentController, didReceive message: WKScriptMessage) {
-        guard let body = message.body as? [String: Any], let type = body["type"] as? String else { return }
+        guard origin?.accepts(message) == true, let body = message.body as? [String: Any], let type = body["type"] as? String else { return }
         let center = MPNowPlayingInfoCenter.default()
         switch type {
         case "metadata":
@@ -98,7 +100,7 @@ final class NowPlayingBridge: NSObject, WKScriptMessageHandler {
             }
             setTrack(title: body["title"] as? String ?? "", artist: body["artist"] as? String ?? "",
                      album: body["album"] as? String ?? "",
-                     artwork: (body["artwork"] as? [String])?.first.flatMap(URL.init(string:)))
+                     artwork: (body["artwork"] as? [String])?.first.flatMap(URL.init(string:)).flatMap { origin?.isPicture($0) == true ? $0 : nil })
         default: break
         }
     }

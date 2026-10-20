@@ -52,6 +52,8 @@ final class WebModel: NSObject, ObservableObject, WKNavigationDelegate, WKUIDele
     @Published var showSettings = false
 
     let webView: WKWebView
+    /// The linked server: everything the page asks of the native side is checked against it (see TrustedOrigin).
+    private let origin = TrustedOrigin()
     private let audio = NativeAudio()
     private let bridge = NowPlayingBridge()
     private var timer: Timer?
@@ -75,6 +77,9 @@ final class WebModel: NSObject, ObservableObject, WKNavigationDelegate, WKUIDele
         webView.scrollView.backgroundColor = .black
         webView.underPageBackgroundColor = .black
 
+        origin.url = url
+        audio.origin = origin
+        bridge.origin = origin
         bridge.audio = audio
         audio.onPlayback = { [weak bridge] e, d, p in bridge?.updatePlayback(elapsed: e, duration: d, playing: p) }
         audio.onTrack = { [weak bridge] t in bridge?.setTrack(title: t.title, artist: t.artist, album: t.album, artwork: t.thumb) }
@@ -96,7 +101,7 @@ final class WebModel: NSObject, ObservableObject, WKNavigationDelegate, WKUIDele
 
     /// Loads the web UI only once the server identifies itself as a NxtSound server (otherwise error view).
     func load(_ newURL: URL? = nil) {
-        if let newURL { url = newURL }
+        if let newURL { url = newURL; origin.url = newURL }
         state = .loading
         let target = url
         Task { @MainActor in
@@ -158,13 +163,7 @@ final class WebModel: NSObject, ObservableObject, WKNavigationDelegate, WKUIDele
     // MARK: Linked server only
 
     /// Same origin as the linked server address (scheme, host, port).
-    private func isSameOrigin(_ other: URL) -> Bool {
-        other.scheme?.lowercased() == url.scheme?.lowercased()
-            && other.host?.lowercased() == url.host?.lowercased()
-            && (other.port ?? Self.defaultPort(other)) == (url.port ?? Self.defaultPort(url))
-    }
-
-    private static func defaultPort(_ u: URL) -> Int { u.scheme?.lowercased() == "http" ? 80 : 443 }
+    private func isSameOrigin(_ other: URL) -> Bool { origin.isSame(other) }
 
     /// The app is not a browser: the main window only goes to the linked server. Links to other websites open in Safari.
     func webView(_ webView: WKWebView, decidePolicyFor action: WKNavigationAction,
@@ -233,6 +232,7 @@ final class WebModel: NSObject, ObservableObject, WKNavigationDelegate, WKUIDele
     @objc private func openSettings() { showSettings = true }
 
     func userContentController(_ controller: WKUserContentController, didReceive message: WKScriptMessage) {
+        guard origin.accepts(message) else { return }  // only the page of the linked server may open the app's settings
         if message.name == "appSettings" { DispatchQueue.main.async { self.showSettings = true } }
     }
 
