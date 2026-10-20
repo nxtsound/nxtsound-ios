@@ -28,6 +28,11 @@ struct NativeTrack {
     init(id: String, url: URL) {
         self.id = id; self.url = url; title = ""; artist = ""; album = ""; thumb = nil
     }
+
+    /// A song kept on the device (a local file; not checked against the server: the app wrote it itself).
+    init(id: String, url: URL, title: String, artist: String, album: String, thumb: URL?) {
+        self.id = id; self.url = url; self.title = title; self.artist = artist; self.album = album; self.thumb = thumb
+    }
 }
 
 final class NativeAudio: NSObject, WKScriptMessageHandler {
@@ -176,6 +181,16 @@ final class NativeAudio: NSObject, WKScriptMessageHandler {
         case "queue": updateQueue(body)
         default: break
         }
+    }
+
+    /// Plays songs kept on the device (the offline view): from `index` on, the ones before it are reachable with "previous".
+    func playLocal(_ tracks: [NativeTrack], index: Int) {
+        guard tracks.indices.contains(index) else { return }
+        previous = index > 0 ? tracks[index - 1] : nil
+        upcoming = Array(tracks[(index + 1)...])
+        repeatMode = "off"
+        wantPlay = true
+        play(track: tracks[index])
     }
 
     // MARK: Control (also used by the remote control)

@@ -27,3 +27,16 @@
 "The server does not respond." = "Der Server antwortet nicht.";
 "OK" = "OK";
 "Cancel" = "Abbrechen";
+"You are offline" = "Du bist offline";
+"Offline songs" = "Offline-Titel";
+"Offline" = "Offline";
+"Keep songs for offline listening" = "Titel für Offline-Hören speichern";
+"Only on Wi-Fi" = "Nur im WLAN";
+"Saved" = "Gespeichert";
+"Update now" = "Jetzt aktualisieren";
+"Updating …" = "Aktualisiere …";
+"Delete saved songs" = "Gespeicherte Titel löschen";
+"No songs are saved for offline use. You can switch this on in the app settings." = "Es sind keine Titel für den Offline-Betrieb gespeichert. Du kannst das in den App-Einstellungen einschalten.";
+"These songs are saved on this device." = "Diese Titel sind auf diesem Gerät gespeichert.";
+"The server did not accept the request. Are you logged in?" = "Der Server hat die Anfrage nicht akzeptiert. Bist du angemeldet?";
+"Saves the last %lld songs you played and your %lld most played ones on this device, so you can keep listening without a connection. The selection is updated when the app is online." = "Speichert die letzten %lld gespielten und deine %lld meistgespielten Titel auf diesem Gerät, damit du auch ohne Verbindung weiterhören kannst. Die Auswahl wird aktualisiert, wenn die App online ist.";

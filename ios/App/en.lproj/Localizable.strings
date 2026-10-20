@@ -27,3 +27,16 @@
 "The server does not respond." = "The server does not respond.";
 "OK" = "OK";
 "Cancel" = "Cancel";
+"You are offline" = "You are offline";
+"Offline songs" = "Offline songs";
+"Offline" = "Offline";
+"Keep songs for offline listening" = "Keep songs for offline listening";
+"Only on Wi-Fi" = "Only on Wi-Fi";
+"Saved" = "Saved";
+"Update now" = "Update now";
+"Updating …" = "Updating …";
+"Delete saved songs" = "Delete saved songs";
+"No songs are saved for offline use. You can switch this on in the app settings." = "No songs are saved for offline use. You can switch this on in the app settings.";
+"These songs are saved on this device." = "These songs are saved on this device.";
+"The server did not accept the request. Are you logged in?" = "The server did not accept the request. Are you logged in?";
+"Saves the last %lld songs you played and your %lld most played ones on this device, so you can keep listening without a connection. The selection is updated when the app is online." = "Saves the last %lld songs you played and your %lld most played ones on this device, so you can keep listening without a connection. The selection is updated when the app is online.";

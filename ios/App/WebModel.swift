@@ -50,6 +50,9 @@ final class WebModel: NSObject, ObservableObject, WKNavigationDelegate, WKUIDele
 
     @Published var state: LoadState = .loading
     @Published var showSettings = false
+    /// What the native player plays right now and whether it runs (for the offline view's own controls).
+    @Published private(set) var nowPlaying: NativeTrack?
+    @Published private(set) var isPlaying = false
 
     let webView: WKWebView
     /// The linked server: everything the page asks of the native side is checked against it (see TrustedOrigin).
@@ -81,8 +84,14 @@ final class WebModel: NSObject, ObservableObject, WKNavigationDelegate, WKUIDele
         audio.origin = origin
         bridge.origin = origin
         bridge.audio = audio
-        audio.onPlayback = { [weak bridge] e, d, p in bridge?.updatePlayback(elapsed: e, duration: d, playing: p) }
-        audio.onTrack = { [weak bridge] t in bridge?.setTrack(title: t.title, artist: t.artist, album: t.album, artwork: t.thumb) }
+        audio.onPlayback = { [weak self, weak bridge] e, d, p in
+            bridge?.updatePlayback(elapsed: e, duration: d, playing: p)
+            DispatchQueue.main.async { if self?.isPlaying != p { self?.isPlaying = p } }
+        }
+        audio.onTrack = { [weak self, weak bridge] t in
+            bridge?.setTrack(title: t.title, artist: t.artist, album: t.album, artwork: t.thumb)
+            DispatchQueue.main.async { self?.nowPlaying = t }
+        }
         audio.onPageCommand = { [weak bridge] name in bridge?.fire(name) }
         audio.attach(to: webView)
         bridge.attach(to: webView)
@@ -116,6 +125,14 @@ final class WebModel: NSObject, ObservableObject, WKNavigationDelegate, WKUIDele
             }
         }
     }
+
+    var cookieStore: WKHTTPCookieStore { webView.configuration.websiteDataStore.httpCookieStore }
+
+    // MARK: Offline playback (songs on the device)
+
+    func playOffline(_ tracks: [NativeTrack], index: Int) { audio.playLocal(tracks, index: index) }
+    func togglePlayback() { if isPlaying { audio.pause() } else { audio.play() } }
+    func skipNext() { audio.remoteNext() }
 
     func reload() {
         if webView.url == nil { load() } else { state = .loading; webView.reload() }

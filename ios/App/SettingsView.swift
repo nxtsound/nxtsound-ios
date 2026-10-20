@@ -4,6 +4,8 @@ import SwiftUI
 struct SettingsView: View {
     @ObservedObject var store: ServerStore
     @ObservedObject var model: WebModel
+    @ObservedObject var offline: OfflineStore
+    @ObservedObject var network: NetworkMonitor
     @Environment(\.dismiss) private var dismiss
 
     @StateObject private var probe = ServerProbe()
@@ -30,6 +32,8 @@ struct SettingsView: View {
                         .disabled(!probe.isOK || probe.verifiedURL == store.serverURL)
                 }
 
+                offlineSection
+
                 Section {
                     Button("Reload page") { dismiss(); model.reload() }
                 }
@@ -49,6 +53,7 @@ struct SettingsView: View {
             .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
             .confirmationDialog("Really log out?", isPresented: $confirmUnlink, titleVisibility: .visible) {
                 Button("Log out", role: .destructive) {
+                    offline.removeAll()  // what was saved belongs to this account
                     model.clearSession { dismiss(); store.unlink() }
                 }
             }
@@ -57,6 +62,29 @@ struct SettingsView: View {
             address = store.serverURL?.absoluteString ?? ""
             probe.update(address, delay: .milliseconds(0))
         }
+    }
+
+    private var offlineSection: some View {
+        Section {
+            Toggle("Keep songs for offline listening", isOn: $offline.enabled)
+                .onChange(of: offline.enabled) { _, on in if on { updateOffline() } }
+            if offline.enabled {
+                Toggle("Only on Wi-Fi", isOn: $offline.wifiOnly)
+                LabeledContent("Saved", value: "\(offline.tracks.count) · \(ByteCountFormatter.string(fromByteCount: offline.bytes, countStyle: .file))")
+                Button(offline.syncing ? LocalizedStringKey("Updating …") : LocalizedStringKey("Update now"), action: updateOffline).disabled(offline.syncing || !network.isOnline)
+                if let error = offline.lastError { Text(error).font(.footnote).foregroundStyle(.red) }
+                Button("Delete saved songs", role: .destructive) { offline.removeAll() }
+                    .disabled(offline.tracks.isEmpty)
+            }
+        } header: {
+            Text("Offline")
+        } footer: {
+            Text("Saves the last \(OfflineStore.recentCount) songs you played and your \(OfflineStore.topCount) most played ones on this device, so you can keep listening without a connection. The selection is updated when the app is online.")
+        }
+    }
+
+    private func updateOffline() {
+        Task { await offline.sync(cookies: model.cookieStore) }
     }
 
     private func saveAddress() {
