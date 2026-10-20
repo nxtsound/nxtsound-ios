@@ -53,6 +53,8 @@ final class WebModel: NSObject, ObservableObject, WKNavigationDelegate, WKUIDele
     /// What the native player plays right now and whether it runs (for the offline view's own controls).
     @Published private(set) var nowPlaying: NativeTrack?
     @Published private(set) var isPlaying = false
+    /// The page was loaded from the device's cache because the server could not be reached (it then shows its own "not reachable" state).
+    @Published private(set) var fromCache = false
 
     let webView: WKWebView
     /// The linked server: everything the page asks of the native side is checked against it (see TrustedOrigin).
@@ -112,6 +114,7 @@ final class WebModel: NSObject, ObservableObject, WKNavigationDelegate, WKUIDele
     func load(_ newURL: URL? = nil) {
         if let newURL { url = newURL; origin.url = newURL }
         state = .loading
+        fromCache = false
         let target = url
         Task { @MainActor in
             do {
@@ -121,7 +124,14 @@ final class WebModel: NSObject, ObservableObject, WKNavigationDelegate, WKUIDele
                 self.armTimer()
             } catch {
                 guard target == self.url else { return }
-                self.state = .failed(error.localizedDescription)
+                if case ServerCheckError.unreachable = error {
+                    // No connection: show the page as it was kept on the device (its files stay valid; see the server's asset hashes).
+                    self.fromCache = true
+                    self.webView.load(URLRequest(url: target, cachePolicy: .returnCacheDataDontLoad))
+                    self.armTimer()
+                } else {
+                    self.state = .failed(error.localizedDescription)
+                }
             }
         }
     }
@@ -135,7 +145,7 @@ final class WebModel: NSObject, ObservableObject, WKNavigationDelegate, WKUIDele
     func skipNext() { audio.remoteNext() }
 
     func reload() {
-        if webView.url == nil { load() } else { state = .loading; webView.reload() }
+        if webView.url == nil || fromCache { load() } else { state = .loading; webView.reload() }
         armTimer()
     }
 
@@ -174,7 +184,7 @@ final class WebModel: NSObject, ObservableObject, WKNavigationDelegate, WKUIDele
         let code = (error as NSError).code
         if code == NSURLErrorCancelled { return }  // cancelled by the timer or a new request
         disarmTimer()
-        state = .failed(error.localizedDescription)
+        state = .failed(fromCache ? String(localized: "The app is not saved on this device yet. Connect to the server once.") : error.localizedDescription)
     }
 
     // MARK: Linked server only
@@ -254,6 +264,16 @@ final class WebModel: NSObject, ObservableObject, WKNavigationDelegate, WKUIDele
     }
 
     func gestureRecognizer(_ a: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith b: UIGestureRecognizer) -> Bool { true }
+
+    /// Forgets the kept page files (the app's cache), but not the login. The page is loaded again afterwards.
+    func resetCache() {
+        let types: Set<String> = [WKWebsiteDataTypeDiskCache, WKWebsiteDataTypeMemoryCache, WKWebsiteDataTypeOfflineWebApplicationCache,
+                                  WKWebsiteDataTypeFetchCache, WKWebsiteDataTypeServiceWorkerRegistrations]
+        let store = webView.configuration.websiteDataStore
+        store.fetchDataRecords(ofTypes: types) { records in
+            store.removeData(ofTypes: types, for: records) { DispatchQueue.main.async { [weak self] in self?.fromCache = false; self?.load() } }
+        }
+    }
 
     /// Log out: delete cookies and site data of this server.
     func clearSession(completion: @escaping () -> Void) {

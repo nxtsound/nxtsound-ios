@@ -41,7 +41,7 @@ struct PlayerScreen: View {
         }
         .onChange(of: net.isOnline) { _, online in
             guard online else { return }
-            if failed { model.reload() }
+            if failed || model.fromCache { model.reload() }
             syncOffline()
         }
         .onChange(of: scenePhase) { _, phase in if phase == .active { syncOffline() } }

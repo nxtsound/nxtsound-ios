@@ -40,3 +40,6 @@
 "These songs are saved on this device." = "These songs are saved on this device.";
 "The server did not accept the request. Are you logged in?" = "The server did not accept the request. Are you logged in?";
 "Saves the last %lld songs you played and your %lld most played ones on this device, so you can keep listening without a connection. The selection is updated when the app is online." = "Saves the last %lld songs you played and your %lld most played ones on this device, so you can keep listening without a connection. The selection is updated when the app is online.";
+"Reset app cache" = "Reset app cache";
+"The app keeps its pages on the device so it can open without a connection. Resetting loads them from the server again; you stay logged in." = "The app keeps its pages on the device so it can open without a connection. Resetting loads them from the server again; you stay logged in.";
+"The app is not saved on this device yet. Connect to the server once." = "The app is not saved on this device yet. Connect to the server once.";

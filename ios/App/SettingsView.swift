@@ -36,6 +36,9 @@ struct SettingsView: View {
 
                 Section {
                     Button("Reload page") { dismiss(); model.reload() }
+                    Button("Reset app cache") { dismiss(); model.resetCache() }
+                } footer: {
+                    Text("The app keeps its pages on the device so it can open without a connection. Resetting loads them from the server again; you stay logged in.")
                 }
 
                 Section {
