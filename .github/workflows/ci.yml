@@ -1,0 +1,19 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - run: brew install xcodegen
+      - name: Generate the project
+        run: cd ios && xcodegen generate
+      - name: Build for the simulator
+        run: |
+          cd ios
+          xcodebuild -project NxtSound.xcodeproj -scheme NxtSound -destination 'generic/platform=iOS Simulator' build CODE_SIGNING_ALLOWED=NO

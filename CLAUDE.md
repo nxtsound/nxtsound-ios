@@ -3,7 +3,7 @@
 Guidance for AI coding tools (and a good summary for human contributors). Personal preferences belong in `CLAUDE.local.md` (not committed).
 
 ## Project
-Native iOS app for the NxtSound server (`../nxtsound-server`), modelled on the Home Assistant companion app: it asks for the server address on first start, links to it, then shows the server's web UI in a web view with a native player. Do not scatter the display name: it lives in `AppConfig.appName` (and `ios/project.yml`). Roadmap and decisions: `PLAN.md`.
+Native iOS app for the NxtSound server (https://github.com/nxtsound/nxtsound-server), modelled on the Home Assistant companion app: it asks for the server address on first start, links to it, then shows the server's web UI in a web view with a native player. Do not scatter the display name: it lives in `AppConfig.appName` (and `ios/project.yml`). Roadmap and decisions: `PLAN.md`.
 
 ## Conventions
 - Code, comments, docs and commit messages are **English**. App texts are English and German: `ios/App/en.lproj` and `ios/App/de.lproj` (`Localizable.strings`, keys are the English source strings).

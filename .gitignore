@@ -5,3 +5,4 @@ build/
 DerivedData/
 ios/Local.xcconfig
 CLAUDE.local.md
+PLAN.local.md
