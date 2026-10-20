@@ -109,6 +109,12 @@ struct OfflineBadge: View {
         .padding(.horizontal, 14).padding(.vertical, 7)
         .background(.ultraThinMaterial, in: Capsule())
         .overlay(Capsule().stroke(.white.opacity(0.12)))
-        .padding(.top, 4)
+        .padding(.top, Self.topInset + 6)
+    }
+
+    /// The view runs under the status bar and the Dynamic Island: the pill starts below them.
+    private static var topInset: CGFloat {
+        let scene = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first
+        return scene?.keyWindow?.safeAreaInsets.top ?? 47
     }
 }
