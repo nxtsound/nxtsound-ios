@@ -39,7 +39,16 @@
 "No songs are saved for offline use. You can switch this on in the app settings." = "Es sind keine Titel für den Offline-Betrieb gespeichert. Du kannst das in den App-Einstellungen einschalten.";
 "These songs are saved on this device." = "Diese Titel sind auf diesem Gerät gespeichert.";
 "The server did not accept the request. Are you logged in?" = "Der Server hat die Anfrage nicht akzeptiert. Bist du angemeldet?";
-"Saves the last %lld songs you played and your %lld most played ones on this device, so you can keep listening without a connection. The selection is updated when the app is online." = "Speichert die letzten %lld gespielten und deine %lld meistgespielten Titel auf diesem Gerät, damit du auch ohne Verbindung weiterhören kannst. Die Auswahl wird aktualisiert, wenn die App online ist.";
 "Reset app cache" = "App-Cache zurücksetzen";
 "The app keeps its pages on the device so it can open without a connection. Resetting loads them from the server again; you stay logged in." = "Die App behält ihre Seiten auf dem Gerät, damit sie auch ohne Verbindung öffnet. Zurücksetzen lädt sie neu vom Server; du bleibst angemeldet.";
 "The app is not saved on this device yet. Connect to the server once." = "Die App ist noch nicht auf diesem Gerät gespeichert. Verbinde dich einmal mit dem Server.";
+"Last played" = "Zuletzt gespielt";
+"Most played" = "Am meisten gespielt";
+"Chosen songs" = "Ausgewählte Titel";
+"Search results" = "Suchergebnisse";
+"Searching …" = "Suche …";
+"Nothing found." = "Nichts gefunden.";
+"You have not chosen any songs yet. Search above and tap one to keep it." = "Du hast noch keine Titel ausgewählt. Suche oben und tippe auf einen, um ihn zu behalten.";
+"Chosen songs are always kept. The last played and most played ones fill up the rest." = "Ausgewählte Titel bleiben immer gespeichert. Die zuletzt und am meisten gespielten füllen den Rest auf.";
+"Search your library" = "In deiner Bibliothek suchen";
+"Saves the songs you played last, your most played ones and the songs you chose on this device, so you can keep listening without a connection. The selection is updated when the app is online." = "Speichert die zuletzt gespielten, deine meistgespielten und die von dir ausgewählten Titel auf diesem Gerät, damit du auch ohne Verbindung weiterhören kannst. Die Auswahl wird aktualisiert, wenn die App online ist.";

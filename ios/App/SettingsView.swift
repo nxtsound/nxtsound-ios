@@ -73,6 +73,13 @@ struct SettingsView: View {
                 .onChange(of: offline.enabled) { _, on in if on { updateOffline() } }
             if offline.enabled {
                 Toggle("Only on Wi-Fi", isOn: $offline.wifiOnly)
+                Stepper(value: $offline.recentCount, in: 0...OfflineStore.maxCount) { LabeledContent("Last played", value: "\(offline.recentCount)") }
+                Stepper(value: $offline.topCount, in: 0...OfflineStore.maxCount) { LabeledContent("Most played", value: "\(offline.topCount)") }
+                NavigationLink {
+                    OfflineChooseView(offline: offline, model: model, network: network)
+                } label: {
+                    LabeledContent("Chosen songs", value: "\(offline.pinned.count)")
+                }
                 LabeledContent("Saved", value: "\(offline.tracks.count) · \(ByteCountFormatter.string(fromByteCount: offline.bytes, countStyle: .file))")
                 Button(offline.syncing ? LocalizedStringKey("Updating …") : LocalizedStringKey("Update now"), action: updateOffline).disabled(offline.syncing || !network.isOnline)
                 if let error = offline.lastError { Text(error).font(.footnote).foregroundStyle(.red) }
@@ -82,7 +89,7 @@ struct SettingsView: View {
         } header: {
             Text("Offline")
         } footer: {
-            Text("Saves the last \(OfflineStore.recentCount) songs you played and your \(OfflineStore.topCount) most played ones on this device, so you can keep listening without a connection. The selection is updated when the app is online.")
+            Text("Saves the songs you played last, your most played ones and the songs you chose on this device, so you can keep listening without a connection. The selection is updated when the app is online.")
         }
     }
 

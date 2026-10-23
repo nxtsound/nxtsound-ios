@@ -36,13 +36,22 @@ struct OfflineTrack: Codable, Identifiable, Equatable {
     let cover: String?
 }
 
+/// A song the user chose to keep (from a search in the library), whatever the automatic selection says.
+struct PinnedSong: Codable, Identifiable, Equatable {
+    let id: String
+    let title: String
+    let artist: String
+    let album: String
+    let thumb: String?
+}
+
 /// Keeps a selection of songs on the device for listening without a connection: the last songs the user played and their most played ones
 /// (the server decides which, see `GET /api/me/offline-set`). Everything lives in one folder per server that is left out of backups and deleted on logout.
 @MainActor
 final class OfflineStore: ObservableObject {
-    /// How many of each the server is asked for.
-    static let recentCount = 20
-    static let topCount = 20
+    /// How many of each the server is asked for (the user can change both; the server allows up to 50).
+    static let defaultCount = 20
+    static let maxCount = 50
     /// A download that gets bigger than this is dropped (a whole audiobook is not "a song"); the whole selection stays below the total limit.
     private static let maxFileBytes: Int64 = 250_000_000
     private static let maxTotalBytes: Int64 = 3_000_000_000
@@ -52,6 +61,8 @@ final class OfflineStore: ObservableObject {
         static let enabled = "offlineEnabled"
         static let wifiOnly = "offlineWifiOnly"
         static let lastSync = "offlineLastSync"
+        static let recent = "offlineRecentCount"
+        static let top = "offlineTopCount"
     }
 
     @Published private(set) var tracks: [OfflineTrack] = []
@@ -67,6 +78,15 @@ final class OfflineStore: ObservableObject {
     @Published var wifiOnly: Bool {
         didSet { UserDefaults.standard.set(wifiOnly, forKey: Key.wifiOnly) }
     }
+    /// How many of the last played and of the most played songs are kept automatically.
+    @Published var recentCount: Int {
+        didSet { UserDefaults.standard.set(recentCount, forKey: Key.recent); UserDefaults.standard.removeObject(forKey: Key.lastSync) }
+    }
+    @Published var topCount: Int {
+        didSet { UserDefaults.standard.set(topCount, forKey: Key.top); UserDefaults.standard.removeObject(forKey: Key.lastSync) }
+    }
+    /// Songs chosen by hand: they are always kept, before the automatic ones.
+    @Published private(set) var pinned: [PinnedSong] = []
 
     private var dir: URL?
     private var server: URL?
@@ -80,6 +100,8 @@ final class OfflineStore: ObservableObject {
     init() {
         enabled = UserDefaults.standard.bool(forKey: Key.enabled)
         wifiOnly = UserDefaults.standard.object(forKey: Key.wifiOnly) as? Bool ?? true
+        recentCount = min(Self.maxCount, max(0, UserDefaults.standard.object(forKey: Key.recent) as? Int ?? Self.defaultCount))
+        topCount = min(Self.maxCount, max(0, UserDefaults.standard.object(forKey: Key.top) as? Int ?? Self.defaultCount))
     }
 
     // MARK: Folder
@@ -90,6 +112,7 @@ final class OfflineStore: ObservableObject {
         server = url
         dir = nil
         tracks = []
+        pinned = []
         bytes = 0
         guard let url, var base = try? FileManager.default.url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true) else { return }
         base.append(path: "Offline", directoryHint: .isDirectory)
@@ -102,6 +125,7 @@ final class OfflineStore: ObservableObject {
         if let data = try? Data(contentsOf: base.appending(path: "tracks.json")), let list = try? JSONDecoder().decode([OfflineTrack].self, from: data) {
             tracks = list.filter { FileManager.default.fileExists(atPath: base.appending(path: $0.file).path) }
         }
+        if let data = try? Data(contentsOf: base.appending(path: "pinned.json")), let list = try? JSONDecoder().decode([PinnedSong].self, from: data) { pinned = list }
         bytes = folderSize()
     }
 
@@ -136,10 +160,44 @@ final class OfflineStore: ObservableObject {
             files.forEach { try? FileManager.default.removeItem(at: $0) }
         }
         tracks = []
+        pinned = []
         bytes = 0
         lastError = nil
         UserDefaults.standard.removeObject(forKey: Key.lastSync)
     }
+
+    // MARK: Songs chosen by hand
+
+    func pin(_ song: PinnedSong) {
+        guard !pinned.contains(where: { $0.id == song.id }) else { return }
+        pinned.append(song)
+        savePinned()
+    }
+
+    func unpin(_ id: String) {
+        pinned.removeAll { $0.id == id }
+        savePinned()
+    }
+
+    private func savePinned() {
+        guard let dir, let data = try? JSONEncoder().encode(pinned) else { return }
+        try? data.write(to: dir.appending(path: "pinned.json"), options: .atomic)
+        UserDefaults.standard.removeObject(forKey: Key.lastSync)
+    }
+
+    /// Songs of the library that match a search (the server's own files, which can be kept).
+    func search(_ text: String, cookies: [HTTPCookie]) async -> [PinnedSong] {
+        guard let server, !text.trimmingCharacters(in: .whitespaces).isEmpty else { return [] }
+        var comps = URLComponents(url: server, resolvingAgainstBaseURL: false)
+        comps?.path = "/api/search"
+        comps?.queryItems = [URLQueryItem(name: "q", value: text), URLQueryItem(name: "kind", value: "songs"), URLQueryItem(name: "source", value: "local")]
+        guard let url = comps?.url, let (data, response) = try? await session.data(for: request(url, cookies: cookies)),
+              (response as? HTTPURLResponse)?.statusCode == 200,
+              let found = try? JSONDecoder().decode(SearchResult.self, from: data) else { return [] }
+        return found.items.prefix(40).map { PinnedSong(id: $0.id, title: $0.title ?? "", artist: $0.artist ?? "", album: $0.album ?? "", thumb: $0.thumb) }
+    }
+
+    private struct SearchResult: Decodable { let items: [Remote] }
 
     // MARK: Synchronising
 
@@ -171,14 +229,16 @@ final class OfflineStore: ObservableObject {
         do {
             var comps = URLComponents(url: server, resolvingAgainstBaseURL: false)
             comps?.path = "/api/me/offline-set"
-            comps?.queryItems = [URLQueryItem(name: "recent", value: String(Self.recentCount)), URLQueryItem(name: "top", value: String(Self.topCount))]
+            comps?.queryItems = [URLQueryItem(name: "recent", value: String(recentCount)), URLQueryItem(name: "top", value: String(topCount))]
             guard let url = comps?.url else { return }
             let (data, response) = try await session.data(for: request(url, cookies: cookies))
             guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
                 lastError = String(localized: "The server did not accept the request. Are you logged in?")
                 return
             }
-            let wanted = try JSONDecoder().decode(RemoteSet.self, from: data).tracks
+            let chosen = pinned.map { Remote(id: $0.id, title: $0.title, artist: $0.artist, album: $0.album, thumb: $0.thumb) }
+            let picked = try JSONDecoder().decode(RemoteSet.self, from: data).tracks
+            let wanted = chosen + picked.filter { p in !chosen.contains { $0.id == p.id } }  // the chosen ones first: they win when space runs out
             var kept: [OfflineTrack] = []
             var total: Int64 = 0
             for remote in wanted {
@@ -195,7 +255,7 @@ final class OfflineStore: ObservableObject {
                 }
             }
             tracks = kept
-            let names = Set(kept.flatMap { [$0.file] + ($0.cover.map { [$0] } ?? []) } + ["tracks.json"])
+            let names = Set(kept.flatMap { [$0.file] + ($0.cover.map { [$0] } ?? []) } + ["tracks.json", "pinned.json"])
             for f in (try? FileManager.default.contentsOfDirectory(at: dir, includingPropertiesForKeys: nil)) ?? [] where !names.contains(f.lastPathComponent) {
                 try? FileManager.default.removeItem(at: f)
             }

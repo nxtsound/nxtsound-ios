@@ -39,7 +39,16 @@
 "No songs are saved for offline use. You can switch this on in the app settings." = "No songs are saved for offline use. You can switch this on in the app settings.";
 "These songs are saved on this device." = "These songs are saved on this device.";
 "The server did not accept the request. Are you logged in?" = "The server did not accept the request. Are you logged in?";
-"Saves the last %lld songs you played and your %lld most played ones on this device, so you can keep listening without a connection. The selection is updated when the app is online." = "Saves the last %lld songs you played and your %lld most played ones on this device, so you can keep listening without a connection. The selection is updated when the app is online.";
 "Reset app cache" = "Reset app cache";
 "The app keeps its pages on the device so it can open without a connection. Resetting loads them from the server again; you stay logged in." = "The app keeps its pages on the device so it can open without a connection. Resetting loads them from the server again; you stay logged in.";
 "The app is not saved on this device yet. Connect to the server once." = "The app is not saved on this device yet. Connect to the server once.";
+"Last played" = "Last played";
+"Most played" = "Most played";
+"Chosen songs" = "Chosen songs";
+"Search results" = "Search results";
+"Searching …" = "Searching …";
+"Nothing found." = "Nothing found.";
+"You have not chosen any songs yet. Search above and tap one to keep it." = "You have not chosen any songs yet. Search above and tap one to keep it.";
+"Chosen songs are always kept. The last played and most played ones fill up the rest." = "Chosen songs are always kept. The last played and most played ones fill up the rest.";
+"Search your library" = "Search your library";
+"Saves the songs you played last, your most played ones and the songs you chose on this device, so you can keep listening without a connection. The selection is updated when the app is online." = "Saves the songs you played last, your most played ones and the songs you chose on this device, so you can keep listening without a connection. The selection is updated when the app is online.";
