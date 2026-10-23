@@ -77,6 +77,12 @@ final class NowPlayingBridge: NSObject, WKScriptMessageHandler {
         if let artwork { loadArtwork(artwork) }
     }
 
+    /// Nothing plays any more: empty the lock screen.
+    func clear() {
+        info = [:]
+        MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
+    }
+
     func attach(to webView: WKWebView) {
         self.webView = webView
         let controller = webView.configuration.userContentController
@@ -93,6 +99,7 @@ final class NowPlayingBridge: NSObject, WKScriptMessageHandler {
         let center = MPNowPlayingInfoCenter.default()
         switch type {
         case "metadata":
+            if audio?.localActive == true { return }  // the device's songs are playing: the page shows nothing of them
             if body["clear"] as? Bool == true {
                 info = [:]
                 center.nowPlayingInfo = nil

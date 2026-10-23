@@ -28,6 +28,9 @@ struct PlayerScreen: View {
                 }
             case .loaded: EmptyView()
             }
+            if model.localPlayback, !offlineVisible, let now = model.nowPlaying {
+                VStack { Spacer(); LocalNowBar(model: model, track: now, closable: true) }
+            }
             if offlineVisible { OfflineView(offline: offline, model: model, online: net.isOnline, onRetry: { model.reload() }, onClose: offlineForced ? nil : { showOffline = false }) }
             if showSplash { SplashView(model: model) }
         }

@@ -53,6 +53,8 @@ final class WebModel: NSObject, ObservableObject, WKNavigationDelegate, WKUIDele
     /// What the native player plays right now and whether it runs (for the offline view's own controls).
     @Published private(set) var nowPlaying: NativeTrack?
     @Published private(set) var isPlaying = false
+    /// Songs from the device are playing (the page does not know about them, so the app shows its own bar).
+    @Published private(set) var localPlayback = false
     /// The page was loaded from the device's cache because the server could not be reached (it then shows its own "not reachable" state).
     @Published private(set) var fromCache = false
 
@@ -95,6 +97,7 @@ final class WebModel: NSObject, ObservableObject, WKNavigationDelegate, WKUIDele
             DispatchQueue.main.async { self?.nowPlaying = t }
         }
         audio.onPageCommand = { [weak bridge] name in bridge?.fire(name) }
+        audio.onLocalChange = { [weak self] active in DispatchQueue.main.async { self?.localPlayback = active } }
         audio.attach(to: webView)
         bridge.attach(to: webView)
 
@@ -143,6 +146,12 @@ final class WebModel: NSObject, ObservableObject, WKNavigationDelegate, WKUIDele
     func playOffline(_ tracks: [NativeTrack], index: Int) { audio.playLocal(tracks, index: index) }
     func togglePlayback() { if isPlaying { audio.pause() } else { audio.play() } }
     func skipNext() { audio.remoteNext() }
+    func stopOffline() {
+        audio.stopLocal()
+        bridge.clear()
+        nowPlaying = nil
+        isPlaying = false
+    }
 
     func reload() {
         if webView.url == nil || fromCache { load() } else { state = .loading; webView.reload() }

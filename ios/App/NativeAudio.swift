@@ -50,6 +50,13 @@ final class NativeAudio: NSObject, WKScriptMessageHandler {
     /// The linked server: the page may only make the player fetch its stream addresses (set by the web model).
     var origin: TrustedOrigin?
 
+    /// Songs from the device are playing (started in the offline view). The page knows nothing about them: as long as this is set, it must not
+    /// stop the player or clear the lock screen. A song the page loads takes over.
+    private(set) var localActive = false {
+        didSet { if localActive != oldValue { onLocalChange?(localActive) } }
+    }
+    var onLocalChange: ((Bool) -> Void)?
+
     private weak var webView: WKWebView?
     private let player = AVQueuePlayer()
     private var wantPlay = false
@@ -184,11 +191,11 @@ final class NativeAudio: NSObject, WKScriptMessageHandler {
     func userContentController(_ controller: WKUserContentController, didReceive message: WKScriptMessage) {
         guard origin?.accepts(message) == true, let body = message.body as? [String: Any], let cmd = body["cmd"] as? String else { return }
         switch cmd {
-        case "load": if let text = body["url"] as? String, let url = URL(string: text), origin?.isStream(url) == true { load(url) }
+        case "load": if let text = body["url"] as? String, let url = URL(string: text), origin?.isStream(url) == true { localActive = false; load(url) }
         case "play": play()
         case "pause": pause()
         case "seek": seek(to: body["time"] as? Double ?? 0)
-        case "stop": stop()
+        case "stop": if !localActive { stop() }
         case "queue": updateQueue(body)
         default: break
         }
@@ -201,7 +208,14 @@ final class NativeAudio: NSObject, WKScriptMessageHandler {
         upcoming = Array(tracks[(index + 1)...])
         repeatMode = "off"
         wantPlay = true
+        localActive = true
         play(track: tracks[index])
+    }
+
+    /// Ends playback of the device's songs (the user closed the bar).
+    func stopLocal() {
+        localActive = false
+        stop()
     }
 
     // MARK: Control (also used by the remote control)

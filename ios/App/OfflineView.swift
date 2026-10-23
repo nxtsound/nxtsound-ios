@@ -42,7 +42,7 @@ struct OfflineView: View {
             }
 
             Button("Try again", action: onRetry).buttonStyle(.bordered).padding(.vertical, 12)
-            if let now = model.nowPlaying, offline.tracks.contains(where: { $0.id == now.id }) { nowBar(now) }
+            if let now = model.nowPlaying, offline.tracks.contains(where: { $0.id == now.id }) { LocalNowBar(model: model, track: now, closable: false) }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color.black)
@@ -60,7 +60,15 @@ struct OfflineView: View {
         .contentShape(Rectangle())
     }
 
-    private func nowBar(_ track: NativeTrack) -> some View {
+}
+
+/// What plays from the device: title, play/pause, next (and a way to end it when the page is showing instead of the offline list).
+struct LocalNowBar: View {
+    @ObservedObject var model: WebModel
+    let track: NativeTrack
+    let closable: Bool
+
+    var body: some View {
         HStack(spacing: 14) {
             Cover(url: track.thumb).frame(width: 40, height: 40)
             VStack(alignment: .leading, spacing: 1) {
@@ -70,6 +78,9 @@ struct OfflineView: View {
             Spacer()
             Button { model.togglePlayback() } label: { Image(systemName: model.isPlaying ? "pause.fill" : "play.fill").font(.title3) }
             Button { model.skipNext() } label: { Image(systemName: "forward.fill").font(.title3) }
+            if closable {
+                Button { model.stopOffline() } label: { Image(systemName: "xmark").font(.body.weight(.semibold)) }.foregroundStyle(.secondary)
+            }
         }
         .padding(.horizontal, 20).padding(.vertical, 10).padding(.bottom, 24)
         .background(.ultraThinMaterial)
