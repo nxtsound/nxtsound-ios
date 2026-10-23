@@ -1,5 +1,7 @@
 import WebKit
 import AVFoundation
+import Network
+import UIKit
 
 /// Native player behind the web UI's `<audio id="audio">`.
 /// A script in the page replaces the element's behaviour (src, play, pause, currentTime ...)
@@ -57,6 +59,15 @@ final class NativeAudio: NSObject, WKScriptMessageHandler {
     private var observers: [NSKeyValueObservation] = []
     private var timeObserver: Any?
     private var cookies: [HTTPCookie] = []
+
+    // A stream that breaks (tunnel, cell change, weak signal): the same song is loaded again where it stopped, as long as the user did not pause.
+    private var lastTime = 0.0
+    private var resumeAt: Double?
+    private var retries = 0
+    private var retryItem: DispatchWorkItem?
+    private var retryBackground: UIBackgroundTaskIdentifier = .invalid
+    private let pathMonitor = NWPathMonitor()
+    private static let maxRetries = 12
 
     // Queue window, reported by the page
     private var current: NativeTrack?
@@ -203,6 +214,7 @@ final class NativeAudio: NSObject, WKScriptMessageHandler {
 
     func pause() {
         wantPlay = false
+        cancelRetry()
         player.pause()
         emit("pause")
     }
@@ -216,6 +228,7 @@ final class NativeAudio: NSObject, WKScriptMessageHandler {
     private func stop() {
         generation += 1
         wantPlay = false
+        cancelRetry()
         loading = false
         player.pause()
         player.removeAllItems()
@@ -251,6 +264,7 @@ final class NativeAudio: NSObject, WKScriptMessageHandler {
         loading = true
         ended = false
         current = track
+        lastTime = resumeAt ?? 0
         if !track.title.isEmpty { onTrack?(track) }  // unknown track: the page supplies the info later
         player.pause()
         withCookies { [weak self] in
@@ -260,6 +274,7 @@ final class NativeAudio: NSObject, WKScriptMessageHandler {
             let item = self.makeItem(track)
             self.observe(item)
             self.player.insert(item, after: nil)
+            if let t = self.resumeAt { item.seek(to: CMTime(seconds: t, preferredTimescale: 600), completionHandler: nil); self.resumeAt = nil }
             self.loading = false
             self.syncQueueItems()
             if self.wantPlay { self.player.play() }
@@ -337,16 +352,54 @@ final class NativeAudio: NSObject, WKScriptMessageHandler {
     private var itemObservation: NSKeyValueObservation?
 
     private func observe(_ item: AVPlayerItem) {
-        itemObservation = item.observe(\.status, options: [.new]) { [weak self] item, _ in
+        itemObservation = item.observe(\.status, options: [.initial, .new]) { [weak self] item, _ in
             switch item.status {
             case .readyToPlay:
                 self?.emit("loadedmetadata")
                 self?.emit("canplay")
             case .failed:
-                self?.emit("error")
+                self?.streamFailed()
             default: break
             }
         }
+    }
+
+    /// The stream broke while the user wanted to listen: try again where it stopped (quickly at first, then slower), also at once when the connection returns.
+    /// Only after many attempts the page hears about it (it would skip or stop).
+    private func streamFailed() {
+        guard wantPlay, current != nil else { emit("error"); return }
+        guard retries < Self.maxRetries else { give(upAfter: "error"); return }
+        retries += 1
+        if retryBackground == .invalid {
+            retryBackground = UIApplication.shared.beginBackgroundTask(withName: "stream-retry") { [weak self] in self?.endRetryBackground() }
+        }
+        retryItem?.cancel()
+        let work = DispatchWorkItem { [weak self] in self?.retryNow() }
+        retryItem = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + min(Double(retries), 8), execute: work)
+    }
+
+    private func retryNow() {
+        retryItem?.cancel(); retryItem = nil
+        guard wantPlay, let track = current else { return }
+        resumeAt = lastTime > 1 ? lastTime : nil
+        play(track: track)
+    }
+
+    private func give(upAfter event: String) {
+        cancelRetry()
+        wantPlay = false
+        emit(event)
+    }
+
+    private func cancelRetry() {
+        retryItem?.cancel(); retryItem = nil
+        retries = 0
+        endRetryBackground()
+    }
+
+    private func endRetryBackground() {
+        if retryBackground != .invalid { UIApplication.shared.endBackgroundTask(retryBackground); retryBackground = .invalid }
     }
 
     @objc private func didEnd(_ note: Notification) {
@@ -358,16 +411,26 @@ final class NativeAudio: NSObject, WKScriptMessageHandler {
         emit("ended")
     }
 
+    @objc private func didFailToEnd(_ note: Notification) {
+        guard let item = note.object as? AVPlayerItem, item === player.currentItem else { return }
+        streamFailed()
+    }
+
     private func observePlayer() {
         guard observers.isEmpty else { return }
         observers.append(player.observe(\.timeControlStatus, options: [.new]) { [weak self] player, _ in
             guard let self, !self.loading else { return }
             switch player.timeControlStatus {
-            case .playing: self.emit("playing")
+            case .playing:
+                if self.retries > 0 { self.cancelRetry() }
+                self.emit("playing")
             case .waitingToPlayAtSpecifiedRate: if self.wantPlay { self.emit("waiting") }
             case .paused:
                 // Paused by the system (call, headphones unplugged, remote control): inform the page.
-                if self.wantPlay && !self.ended { self.wantPlay = false; self.emit("pause") }
+                // (A broken stream also stops the player: that is handled by `streamFailed`, not a pause.)
+                if self.wantPlay && !self.ended && self.player.currentItem?.status != .failed && self.retryItem == nil {
+                    self.wantPlay = false; self.emit("pause")
+                }
             @unknown default: break
             }
         })
@@ -376,8 +439,17 @@ final class NativeAudio: NSObject, WKScriptMessageHandler {
             self.advanced(to: item)
         })
         NotificationCenter.default.addObserver(self, selector: #selector(didEnd(_:)), name: .AVPlayerItemDidPlayToEndTime, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(didFailToEnd(_:)), name: .AVPlayerItemFailedToPlayToEndTime, object: nil)
+        pathMonitor.pathUpdateHandler = { [weak self] path in
+            guard path.status == .satisfied else { return }
+            DispatchQueue.main.async { if self?.retryItem != nil { self?.retryNow() } }  // the connection is back: no need to wait for the timer
+        }
+        pathMonitor.start(queue: DispatchQueue(label: "app.nxtsound.audio.network"))
         timeObserver = player.addPeriodicTimeObserver(forInterval: CMTime(seconds: 0.25, preferredTimescale: 600), queue: .main) { [weak self] _ in
-            self?.emit("timeupdate")
+            guard let self else { return }
+            let t = self.player.currentTime().seconds
+            if t.isFinite, self.player.timeControlStatus == .playing { self.lastTime = t }
+            self.emit("timeupdate")
         }
     }
 

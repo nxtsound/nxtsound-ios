@@ -68,7 +68,8 @@ struct PlayerScreen: View {
     }
 
     /// No connection and nothing but the page's own "not reachable" state to show: the list cannot be closed then (retry is offered instead).
-    private var offlineForced: Bool { !net.isOnline && (failed || model.fromCache) }
+    /// The same when the check at the start failed although the phone thinks it is online (a weak or dead mobile connection).
+    private var offlineForced: Bool { model.fromCache || (failed && !net.isOnline) }
 
     private func syncOffline() {
         Task { await offline.syncIfDue(cookies: model.cookieStore, network: net) }
