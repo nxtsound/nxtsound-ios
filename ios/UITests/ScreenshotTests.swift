@@ -1,7 +1,8 @@
 import XCTest
 
 /// Takes the App Store screenshots from a running demo server (see ios/UITests/README.md).
-/// Environment: SCREENSHOT_DIR (where the PNGs go), DEMO_SERVER (address), DEMO_USER, DEMO_PASSWORD.
+/// Environment: SCREENSHOT_DIR (where the PNGs go), DEMO_SERVER (address), DEMO_USER, DEMO_PASSWORD,
+/// DEMO_LANG (en or de, default en).
 final class ScreenshotTests: XCTestCase {
     private let env = ProcessInfo.processInfo.environment
     private var app = XCUIApplication()
@@ -22,7 +23,8 @@ final class ScreenshotTests: XCTestCase {
     func testScreenshots() throws {
         let server = try XCTUnwrap(env["DEMO_SERVER"], "DEMO_SERVER is not set")
         let user = try XCTUnwrap(env["DEMO_USER"]), password = try XCTUnwrap(env["DEMO_PASSWORD"])
-        app.launchArguments = ["-serverURL", server, "-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
+        let de = env["DEMO_LANG"] == "de"
+        app.launchArguments = ["-serverURL", server, "-AppleLanguages", de ? "(de)" : "(en)", "-AppleLocale", de ? "de_DE" : "en_US"]
         app.launch()
         pause(6)  // splash and first load
 
@@ -34,7 +36,7 @@ final class ScreenshotTests: XCTestCase {
             pw.tap(); pw.typeText(password + "\n")
         }
         pause(5)
-        let skip = app.webViews.buttons["Skip"].firstMatch
+        let skip = app.webViews.buttons[de ? "Überspringen" : "Skip"].firstMatch
         if skip.waitForExistence(timeout: 8) { skip.tap(); pause(2) }  // the first sign-in shows a short tour
         pause(3)
         try shot("01-home")
@@ -54,14 +56,14 @@ final class ScreenshotTests: XCTestCase {
         app.coordinate(withNormalizedOffset: CGVector(dx: 0.255, dy: 0.142)).tap()
         pause(3)
         try shot("03-playlists")
-        app.coordinate(withNormalizedOffset: CGVector(dx: 0.25, dy: 0.4)).tap()  // "Road trip"
+        app.coordinate(withNormalizedOffset: CGVector(dx: 0.25, dy: 0.4)).tap()  // first playlist
         pause(3)
         try shot("04-playlist")
 
         // App settings with the offline section (from the profile menu)
         app.coordinate(withNormalizedOffset: CGVector(dx: 0.93, dy: 0.096)).tap()
         pause(2)
-        let settings = app.descendants(matching: .any)["App settings"].firstMatch
+        let settings = app.descendants(matching: .any)[de ? "App-Einstellungen" : "App settings"].firstMatch
         XCTAssertTrue(settings.waitForExistence(timeout: 5), app.debugDescription)
         settings.tap()
         pause(3)
@@ -72,7 +74,7 @@ final class ScreenshotTests: XCTestCase {
         app.swipeUp(velocity: .slow)
         pause(1)
         try shot("06-offline-settings")
-        app.buttons["Done"].firstMatch.tap()
+        app.buttons[de ? "Fertig" : "Done"].firstMatch.tap()
         pause(2)
 
         // Search

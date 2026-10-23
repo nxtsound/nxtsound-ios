@@ -6,7 +6,7 @@
 xcrun simctl boot "iPhone 17 Pro Max"
 xcrun simctl status_bar "iPhone 17 Pro Max" override --time 9:41 --batteryState charged --batteryLevel 100 --cellularMode active --cellularBars 4 --wifiBars 3
 TEST_RUNNER_SCREENSHOT_DIR=/tmp/shots TEST_RUNNER_DEMO_SERVER=https://demo.example.com \
-TEST_RUNNER_DEMO_USER=reviewer TEST_RUNNER_DEMO_PASSWORD=... \
+TEST_RUNNER_DEMO_USER=reviewer TEST_RUNNER_DEMO_LANG=en TEST_RUNNER_DEMO_PASSWORD=... \
 xcodebuild test -project NxtSound.xcodeproj -scheme NxtSound \
   -destination 'platform=iOS Simulator,name=iPhone 17 Pro Max' -only-testing:NxtSoundUITests
 ```
