@@ -41,3 +41,25 @@ targets:
         ITSAppUsesNonExemptEncryption: false
         NSAppTransportSecurity:
           NSAllowsLocalNetworking: true
+  NxtSoundUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources: [UITests]
+    dependencies:
+      - target: NxtSound
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: app.nxtsound.ios.uitests
+        GENERATE_INFOPLIST_FILE: YES
+schemes:
+  NxtSound:
+    build:
+      targets:
+        NxtSound: all
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets: [NxtSoundUITests]
+    archive:
+      config: Release
