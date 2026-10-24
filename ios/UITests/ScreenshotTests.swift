@@ -61,16 +61,18 @@ final class ScreenshotTests: XCTestCase {
         try shot("04-playlist")
 
         // App settings with the offline section (from the profile menu)
-        app.coordinate(withNormalizedOffset: CGVector(dx: 0.93, dy: 0.096)).tap()
-        pause(2)
         let settings = app.descendants(matching: .any)[de ? "App-Einstellungen" : "App settings"].firstMatch
+        for _ in 0..<3 where !settings.exists {
+            app.coordinate(withNormalizedOffset: CGVector(dx: 0.93, dy: 0.096)).tap()
+            pause(3)
+        }
         XCTAssertTrue(settings.waitForExistence(timeout: 5), app.debugDescription)
         settings.tap()
         pause(3)
         let toggle = app.switches.firstMatch
         XCTAssertTrue(toggle.waitForExistence(timeout: 5))
         toggle.coordinate(withNormalizedOffset: CGVector(dx: 0.92, dy: 0.5)).tap()  // keep songs for offline listening
-        pause(12)     // the first download round
+        pause(25)     // the first download round, so that the offline mode has songs to show
         app.swipeUp(velocity: .slow)
         pause(1)
         try shot("06-offline-settings")
@@ -78,10 +80,26 @@ final class ScreenshotTests: XCTestCase {
         pause(2)
 
         // Search
-        app.coordinate(withNormalizedOffset: CGVector(dx: 0.6, dy: 0.095)).tap()
         pause(2)
+        for _ in 0..<3 where !app.keyboards.firstMatch.exists {
+            app.coordinate(withNormalizedOffset: CGVector(dx: 0.6, dy: 0.095)).tap()
+            pause(2)
+        }
         app.typeText("neon\n")
         pause(4)
         try shot("05-search")
+    }
+
+    /// Run after `testScreenshots` with the same DEMO_SERVER switched off: the saved songs are listed in the offline mode.
+    func testOfflineMode() throws {
+        let server = try XCTUnwrap(env["DEMO_SERVER"], "DEMO_SERVER is not set")
+        let de = env["DEMO_LANG"] == "de"
+        app.launchArguments = ["-serverURL", server, "-AppleLanguages", de ? "(de)" : "(en)", "-AppleLocale", de ? "de_DE" : "en_US"]
+        app.launch()
+        pause(20)  // the page cannot load; the app lists the saved songs by itself or offers them in a button
+        let offlineButton = app.buttons[de ? "Offline-Titel" : "Offline songs"].firstMatch
+        if offlineButton.exists { offlineButton.tap() }
+        pause(3)
+        try shot("07-offline-mode")
     }
 }

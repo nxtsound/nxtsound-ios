@@ -12,3 +12,7 @@ xcodebuild test -project NxtSound.xcodeproj -scheme NxtSound \
 ```
 
 The test taps by position, so it needs the demo server's home page (see `tools/demo` in the server repository) and may need small changes after a larger redesign.
+
+## Offline mode
+
+`testOfflineMode` takes the offline mode (the saved songs) and must run after `testScreenshots` with the same `DEMO_SERVER` switched off, for example when the demo server is reached through a local port forward that is stopped in between. Run it with `-only-testing:NxtSoundUITests/ScreenshotTests/testOfflineMode`; the app lists the saved songs on its own once the server cannot be reached. `DEMO_LANG=de` switches the app and the labels to German.
