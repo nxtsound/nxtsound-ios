@@ -1,5 +1,6 @@
 # NxtSound for iOS
 
+Website: [nxtsound.app](https://nxtsound.app) · [Privacy policy](https://nxtsound.app/privacy/) · [Support](https://nxtsound.app/support/)
 
 Native iOS app for the [NxtSound server](https://github.com/nxtsound/nxtsound-server): it asks for the address of your server once, checks that it really is a
 NxtSound server, and then shows the server's web UI with a native player (background audio, lock screen, remote control).
