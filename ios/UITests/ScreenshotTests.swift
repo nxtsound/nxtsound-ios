@@ -90,6 +90,46 @@ final class ScreenshotTests: XCTestCase {
         try shot("05-search")
     }
 
+    /// iPad: the layout differs from the phone, so the steps come from IPAD_STEPS, separated by spaces:
+    /// `t:x,y` taps at a normalized position, `p:n` waits n seconds, `s:name` takes a screenshot, `k:text` types text,
+    /// `d:x1,y1,x2,y2` drags between two positions. Signs in first, like `testScreenshots`.
+    func testIPad() throws {
+        let server = try XCTUnwrap(env["DEMO_SERVER"], "DEMO_SERVER is not set")
+        let user = try XCTUnwrap(env["DEMO_USER"]), password = try XCTUnwrap(env["DEMO_PASSWORD"])
+        let de = env["DEMO_LANG"] == "de"
+        app.launchArguments = ["-serverURL", server, "-AppleLanguages", de ? "(de)" : "(en)", "-AppleLocale", de ? "de_DE" : "en_US"]
+        app.launch()
+        pause(6)
+        let name = app.webViews.textFields.firstMatch
+        if name.waitForExistence(timeout: 12) {
+            name.tap(); name.typeText(user)
+            let pw = app.webViews.secureTextFields.firstMatch
+            pw.tap(); pw.typeText(password + "\n")
+        }
+        pause(5)
+        let skip = app.webViews.buttons[de ? "Überspringen" : "Skip"].firstMatch
+        if skip.waitForExistence(timeout: 8) { skip.tap(); pause(2) }
+        pause(3)
+        func point(_ s: Substring) -> CGVector {
+            let v = s.split(separator: ",").map { Double($0) ?? 0 }
+            return CGVector(dx: v[0], dy: v[1])
+        }
+        for step in (env["IPAD_STEPS"] ?? "s:01-home").split(separator: " ") {
+            let arg = step.dropFirst(2)
+            switch step.prefix(1) {
+            case "t": app.coordinate(withNormalizedOffset: point(arg)).tap()
+            case "p": pause(Double(arg) ?? 1)
+            case "s": try shot(String(arg))
+            case "k": app.typeText(String(arg))
+            case "d":
+                let v = arg.split(separator: ",").map { Double($0) ?? 0 }
+                app.coordinate(withNormalizedOffset: CGVector(dx: v[0], dy: v[1]))
+                    .press(forDuration: 0.1, thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: v[2], dy: v[3])))
+            default: break
+            }
+        }
+    }
+
     /// Run after `testScreenshots` with the same DEMO_SERVER switched off: the saved songs are listed in the offline mode.
     func testOfflineMode() throws {
         let server = try XCTUnwrap(env["DEMO_SERVER"], "DEMO_SERVER is not set")

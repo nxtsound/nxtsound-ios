@@ -16,3 +16,9 @@ The test taps by position, so it needs the demo server's home page (see `tools/d
 ## Offline mode
 
 `testOfflineMode` takes the offline mode (the saved songs) and must run after `testScreenshots` with the same `DEMO_SERVER` switched off, for example when the demo server is reached through a local port forward that is stopped in between. Run it with `-only-testing:NxtSoundUITests/ScreenshotTests/testOfflineMode`; the app lists the saved songs on its own once the server cannot be reached. `DEMO_LANG=de` switches the app and the labels to German.
+
+## iPad
+
+The layout differs from the phone, so `testIPad` takes its steps from `IPAD_STEPS` (space-separated): `t:x,y` taps at a normalized
+position, `p:n` waits, `s:name` takes a screenshot, `k:text` types, `d:x1,y1,x2,y2` drags. It signs in first, like the phone test.
+Use an iPad Pro 13-inch simulator (2064×2752) for the 13-inch App Store slot.
